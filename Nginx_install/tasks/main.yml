@@ -1,0 +1,114 @@
+---
+# tasks file for Nginx_install
+
+- name: install epel.repo
+  shell:
+        rpm -ivh https://repo.webtatic.com/yum/el7/epel-release.rpm && rpm -ivh https://repo.webtatic.com/yum/el7/webtatic-release.rpm
+  ignore_errors: true
+
+- name: install php        
+  yum:
+        name: "{{ item }}"
+  loop:
+        - php72w
+        - php72w-cli
+        - php72w-fpm
+        - php72w-common
+        - php72w-devel
+        - php72w-embedded
+        - php72w-gd
+        - php72w-mbstring
+        - php72w-mysqlnd
+        - php72w-opcache
+        - php72w-pdo
+        - php72w-xml
+
+- name: chmod php
+  file:
+        path: /etc/php-fpm.d/www.conf
+        owner: nobody
+        group: nobody
+
+- name: start php
+  service:
+        name: php-fpm
+        state: started
+        enabled: yes
+
+- name: install Yilai
+  yum:
+        name: "{{ item }}"
+  loop:
+        - gcc
+        - openssl-devel
+        - zlib-devel
+        - pcre-devel
+
+- name: get nginx_tar
+  shell:
+        cd /tmp && wget http://nginx.org/download/nginx-1.24.0.tar.gz
+
+- name: install_nginx
+  shell:
+        tar -xf /tmp/nginx-1.24.0.tar.gz && cd nginx-1.24.0 && ./configure --prefix=/usr/local/nginx --with-http_stub_status_module --with-http_ssl_module && make && make install
+
+- name: push nginx_conf
+  file:
+        path: /usr/local/nginx/conf.d
+        state: directory
+
+- name: create virtual host
+  copy:
+        src: word.conf 
+        dest: /usr/local/nginx/conf.d/word.conf
+
+- name: include virtual host_nginx
+  copy:
+        src: nginx.conf
+        dest: /usr/local/nginx/conf/nginx.conf
+
+- name: mkdir /wordpress
+  file:
+        path: /wordpress
+        state: directory
+        mode: 755
+
+- name: start nginx
+  shell:
+        /usr/local/nginx/sbin/nginx        
+  ignore_errors: true
+
+- name: install nfs-utils
+  yum:
+     name: nfs-utils
+     state: present
+
+- name: Mount an NFS volume
+  mount:
+    src: 192.168.7.16:/opt/wordpress
+    path: /wordpress
+    opts: rw,sync,hard
+    state: mounted
+    fstype: nfs 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
